@@ -1,0 +1,12 @@
+{
+  "name": "Laikipia Rangeland Restoration (sample)",
+  "description": "SAMPLE DATA for demonstration. Improved grazing management to increase soil carbon. Registered but not yet verified, to show the verifier step in the demo.",
+  "projectType": "Rangeland Soil Carbon",
+  "location": "Laikipia County, Kenya",
+  "unit": "1 token = 1 tonne CO2e",
+  "communityShare": "50%",
+  "documents": {
+    "projectDesign": "ipfs://<upload-project-design-pdf-and-paste-CID>",
+    "verificationReport": "pending"
+  }
+}

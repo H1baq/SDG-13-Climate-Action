@@ -1,0 +1,12 @@
+{
+  "name": "Kisumu Clean Cookstoves (sample)",
+  "description": "SAMPLE DATA for demonstration. Distribution of efficient cookstoves to households, reducing firewood use and emissions.",
+  "projectType": "Clean Cookstoves",
+  "location": "Kisumu County, Kenya",
+  "unit": "1 token = 1 tonne CO2e",
+  "communityShare": "40%",
+  "documents": {
+    "projectDesign": "ipfs://<upload-project-design-pdf-and-paste-CID>",
+    "verificationReport": "ipfs://<upload-verification-report-and-paste-CID>"
+  }
+}

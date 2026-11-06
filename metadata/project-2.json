@@ -1,0 +1,12 @@
+{
+  "name": "Taita Hills Reforestation (sample)",
+  "description": "SAMPLE DATA for demonstration. Community tree-planting and forest restoration.",
+  "projectType": "Reforestation",
+  "location": "Taita-Taveta County, Kenya",
+  "unit": "1 token = 1 tonne CO2e",
+  "communityShare": "40%",
+  "documents": {
+    "projectDesign": "ipfs://<upload-project-design-pdf-and-paste-CID>",
+    "verificationReport": "ipfs://<upload-verification-report-and-paste-CID>"
+  }
+}
