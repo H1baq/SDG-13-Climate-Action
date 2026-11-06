@@ -1,0 +1,29 @@
+{
+  "name": "sdg13-carbon-credits",
+  "version": "1.0.0",
+  "description": "SDG 13 Climate Action: blockchain carbon credit tokenization with community benefit-sharing (KCA University)",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/H1baq/sdg-13-climate-action.git"
+  },
+  "author": "Hibaq Adan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/H1baq/sdg-13-climate-action/issues"
+  },
+  "homepage": "https://github.com/H1baq/sdg-13-climate-action#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.29.1",
+    "solc": "^0.8.24"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1"
+  }
+}
