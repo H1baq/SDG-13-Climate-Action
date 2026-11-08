@@ -102,4 +102,6 @@ Large files are kept off-chain because storing data on a blockchain is expensive
 2. **One issuance per project.** Real projects issue credits every year (vintages). A production version would issue a new token ID per vintage.
 3. **Admin trust.** The admin grants roles. In production this should be a multi-signature wallet or a group of regulators.
 4. **Prototype scale.** Tested on a local Hardhat network. Gas costs and privacy on a public network would need more analysis.
-5. **Legal recognition.** Tokens don't replace a national registry. A real system would have to integrate with Kenya's carbon registry under the Climate Change (Amendment) Act, 2023.
+5. **Legal recognition.** Tokens don't replace a national registry. A real system would have to integrate with Kenya's National Carbon Registry (Climate Change Act, Cap. 387A, s. 23G, added by the Climate Change (Amendment) Act, 2023).
+6. **Legal minimum by project type.** The Act requires at least 40% of aggregate earnings for land-based projects and 25% for non-land-based projects (s. 23E(5)(b)). The contract enforces one platform-wide minimum (25% at deployment), and it splits each on-platform sale rather than the previous year's total earnings. See [`report.md` §6.2](report.md#62-limitations).
+7. **Secondary transfers.** ERC-1155 tokens can be transferred directly between holders, and those private resales don't pay the community.

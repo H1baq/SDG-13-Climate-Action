@@ -103,7 +103,7 @@ A credit passes through a predictable life cycle:
 
 Each step involves a different organisation, and the record of each step usually lives in a different system. In 2023 the market traded about 111 MtCO₂e at an average price of US$6.53 per tonne (Forest Trends' Ecosystem Marketplace, 2024).
 
-To restore trust, the Integrity Council for the Voluntary Carbon Market (ICVCM) published its Core Carbon Principles and assessment framework in 2023. These set threshold standards for issues such as additionality, permanence, robust quantification and "no double counting" (ICVCM, 2023). Kenya's Climate Change (Carbon Markets) Regulations, 2024 add national rules for projects operating in the country, including registration with the National Carbon Registry (Climate Change (Carbon Markets) Regulations, 2024).
+To restore trust, the Integrity Council for the Voluntary Carbon Market (ICVCM) published its Core Carbon Principles and assessment framework in 2023. These set threshold standards for issues such as additionality, permanence, robust quantification and "no double counting" (Integrity Council for the Voluntary Carbon Market [ICVCM], 2023). Kenya's Climate Change (Carbon Markets) Regulations, 2024 add national rules for projects operating in the country, including registration with the National Carbon Registry (Climate Change (Carbon Markets) Regulations, 2024).
 
 ### 2.2 Problems in the market
 
