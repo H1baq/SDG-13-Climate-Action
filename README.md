@@ -8,7 +8,9 @@ KaboniChain turns verified carbon credits into blockchain tokens (**1 token = 1 
 
 ## The problem
 
-The voluntary carbon market suffers from double-counting, lack of transparency and high broker fees. In Kenya, communities living around carbon projects often can't see how much money the projects earn or whether they receive their share. See [`docs/problem-statement.md`](docs/problem-statement.md).
+The voluntary carbon market suffers from double-counting, lack of transparency and high broker fees. In Kenya, communities living around carbon projects often can't see how much money the projects earn or whether they receive their share. The Climate Change (Amendment) Act, 2023 now requires projects to share at least 40% (land-based) or 25% (other projects) of their earnings with communities, but gives communities no way to check this. See [`docs/problem-statement.md`](docs/problem-statement.md).
+
+📄 **Full project report:** [`docs/report.md`](docs/report.md), covering literature review, design, implementation, testing, discussion and APA references.
 
 ## How it works
 
@@ -92,7 +94,8 @@ test/CarbonCredit.test.js      18 automated tests
 scripts/deploy.js              Deploys and seeds 3 sample Kenyan projects
 metadata/                      Sample project metadata (would be uploaded to IPFS)
 frontend/                      React dApp
-docs/                          Problem statement, architecture, team plan, demo script, report outline
+docs/report.md                 Full project report with APA references
+docs/                          Problem statement, architecture, demo script, screenshots (docs/images/)
 ```
 
 ## Test results
@@ -110,10 +113,14 @@ CarbonCredit (SDG 13)
 
 ## References
 
-1. Tlili, H. et al. (2025). Blockchain and tokenized carbon markets: Empirical evidence. *ScienceDirect.*
-2. Golshani, F. et al. (2025). Democratized carbon credit trading on a blockchain. *Taylor & Francis.*
-3. Nadcab Labs. *Carbon Credit Tokens Explained | Blockchain, Climate & Investment* [Video]. YouTube.
-4. *How Carbon Credit Trading Works: The $1.5T Market* [Video]. YouTube.
+Key references are listed below. The full list of 28 references is in [`docs/report.md`](docs/report.md#references).
+
+1. Tlili, H. (2025). Blockchain and tokenized carbon markets: Empirical evidence on market efficiency and transaction dynamics. *Sustainable Futures, 10*, Article 101109. https://doi.org/10.1016/j.sftr.2025.101109
+2. Golshani, F., & Mankar, A. (2025). Democratized carbon credit trading on a blockchain platform. *Technology and Innovation, 24*(4), 221–231. https://doi.org/10.1080/19498241.2025.2611313
+3. Nadcab Labs. (2025, June 21). *Carbon credit tokens explained | Blockchain, climate & investment* [Video]. https://www.nadcab.com/podcast/carbon-credit-tokens-on-blockchain
+4. *How carbon credit trading works: The $1.5T market* [Video]. YouTube.
+5. Climate Change Act, Cap. 387A (Kenya), as amended by the Climate Change (Amendment) Act, No. 9 of 2023, ss. 23E–23G.
+6. Schneider, L., et al. (2019). Double counting and the Paris Agreement rulebook. *Science, 366*(6462), 180–183. https://doi.org/10.1126/science.aay8750
 
 *All project data in this repository is sample data for demonstration.*
 
