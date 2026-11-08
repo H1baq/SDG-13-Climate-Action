@@ -108,17 +108,6 @@ CarbonCredit (SDG 13)
   18 passing
 ```
 
-## Team
-
-| Role | Name |
-|---|---|
-| Project Lead & Research | |
-| Smart Contract Lead | |
-| Integration & Deployment | |
-| Frontend & Demo Lead | |
-
-See [`docs/team-plan.md`](docs/team-plan.md) for the 1-week plan.
-
 ## References
 
 1. Tlili, H. et al. (2025). Blockchain and tokenized carbon markets: Empirical evidence. *ScienceDirect.*
