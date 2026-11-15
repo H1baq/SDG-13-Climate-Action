@@ -86,12 +86,53 @@ Open http://localhost:5173
 >
 > If you restart `npx hardhat node`, clear each account's activity in MetaMask (Settings → Advanced → Clear activity tab data).
 
+## Deploy online (Polygon Amoy testnet + Vercel)
+
+Amoy is a free public test network, and its tokens have no real value. A deployment takes two steps: put the contract on Amoy, then host the website.
+
+### 1. Deploy the contract to Amoy
+
+1. In MetaMask, create **two new accounts** for this demo only: a *deployer* (who becomes admin and project developer) and a *verifier*. A developer can't verify their own project, so the verifier must be a different account. **Never use a wallet that holds real money.**
+2. Get free test POL for **both** accounts from the [Polygon faucet](https://faucet.polygon.technology). Faucets usually allow one request per day.
+3. Copy `.env.example` to `.env` and paste in the two private keys (MetaMask → account menu → Account details → Show private key). `.env` is git-ignored and never committed.
+   ```bash
+   cp .env.example .env
+   ```
+4. Deploy and seed the three sample projects:
+   ```bash
+   npm run deploy:amoy
+   ```
+   The script checks both balances before spending anything. It prints the contract's link on [amoy.polygonscan.com](https://amoy.polygonscan.com) and writes `frontend/src/deployments/amoy.json`.
+5. Commit and push that file, so the hosted site knows where the contract is:
+   ```bash
+   git add frontend/src/deployments/amoy.json
+   git commit -m "Deploy contract to Polygon Amoy"
+   git push
+   ```
+
+### 2. Host the website on Vercel
+
+1. Sign in at [vercel.com](https://vercel.com) with GitHub and **import** this repository.
+2. Set **Root Directory** to `frontend`. Vercel detects Vite and uses `npm run build` with the output directory `dist`.
+3. Click **Deploy**. You get a public URL, and every `git push` redeploys the site automatically.
+
+Production builds use the Amoy deployment (`frontend/.env.production`), while `npm run dev` keeps using your local chain. Netlify works the same way: base directory `frontend`, build command `npm run build`, publish directory `frontend/dist`.
+
+### Using the live site
+
+- Visitors can browse projects, sales and retirements **without a wallet**.
+- To make transactions, click **Connect wallet**. The app offers to add the Amoy network to MetaMask (chain ID `80002`, currency `POL`).
+- Import your deployer account to act as **Developer** and your verifier account to act as **Verifier**. Any account with a little test POL can act as **Buyer**. Testnet prices are set very low, at 0.0001 POL per tonne, so faucet tokens are enough.
+- To use your own community wallets instead of generated ones, set `COMMUNITY_WALLETS` in `.env` before deploying.
+
 ## Project structure
 
 ```
 contracts/CarbonCredit.sol     Smart contract
 test/CarbonCredit.test.js      18 automated tests
-scripts/deploy.js              Deploys and seeds 3 sample Kenyan projects
+scripts/deploy.js              Deploys and seeds 3 sample Kenyan projects (local or Amoy)
+frontend/src/deployments/      Contract address + ABI per network (written by deploy.js)
+.env.example                   Template for testnet deployment keys (copy to .env)
 metadata/                      Sample project metadata (would be uploaded to IPFS)
 frontend/                      React dApp
 docs/report.md                 Full project report with APA references

@@ -461,7 +461,7 @@ The figures below come from an end-to-end run of the dApp. Starting from the see
 [`scripts/deploy.js`](../scripts/deploy.js) runs these steps:
 
 1. Deploys `CarbonCredit` with a **platform minimum community share of 25% (2,500 bps)**, matching the legal floor for non-land-based projects.
-2. Grants the developer and verifier roles to Hardhat accounts #1 and #2.
+2. Grants the developer and verifier roles. Locally these are Hardhat accounts #1 and #2. On a public network, the deployer becomes admin and developer, and a second wallet becomes the verifier, because a developer cannot verify their own project.
 3. Seeds three sample Kenyan projects with community wallets #4–#6:
 
 | # | Project | Type | Community share | Seeded state |
@@ -470,9 +470,11 @@ The figures below come from an end-to-end run of the dApp. Starting from the see
 | 2 | Taita Hills Reforestation | Reforestation (land-based) | 40% | Verified, 2,000 t issued, 1,500 t listed at 0.02 ETH/t |
 | 3 | Laikipia Rangeland Restoration | Rangeland soil carbon (land-based) | 50% | Registered, awaiting verification |
 
-4. Writes the contract address, chain ID and ABI to `frontend/src/contract.json`, which the dApp imports.
+4. Writes the contract address, deployment block, ABI and network details (RPC URL, chain name, currency, block explorer) to `frontend/src/deployments/<network>.json`, which the dApp loads.
 
-The local network is Hardhat (chain ID 31337). The configuration includes a commented-out entry for the Polygon Amoy testnet. Moving to it requires only an RPC URL and a funded deployer key in an uncommitted `.env` file.
+The local network is Hardhat (chain ID 31337). The same script also deploys to the **Polygon Amoy** public testnet (chain ID 80002) with `npm run deploy:amoy`. It reads the deployer and verifier keys from an uncommitted `.env` file, and it checks both balances before sending any transaction, so a deployment never stops halfway. Testnet prices are set to 0.0001 POL per tonne, so faucet tokens are enough to try the full flow.
+
+The frontend is a static site and can be hosted on Vercel or Netlify. `npm run dev` uses the local deployment, while production builds use the Amoy deployment. Because public RPC providers limit how many blocks one log query may cover, the dApp sums community payments by scanning `CreditsSold` events in chunks of 9,000 blocks, starting from the deployment block. It keeps a running total, so later refreshes only scan new blocks. This was tested by mining 20,000 empty blocks after a sale: the total stayed correct. Step-by-step instructions are in the [README](../README.md#deploy-online-polygon-amoy-testnet--vercel).
 
 ---
 
@@ -594,7 +596,7 @@ The last mitigation has a trade-off: if a community wallet were a contract that 
 5. **Registry integration:** anchor community development agreements and retirements in Kenya's National Carbon Registry (ss. 23E(6), 23G), and record corresponding adjustments to prevent double claiming between countries.
 6. **Stronger MRV:** feed satellite imagery and IoT data, such as cookstove usage sensors, into verification through oracles. This addresses the over-crediting causes identified by Gill-Wiehl et al. (2024) and West et al. (2023).
 7. **Governance:** a multi-signature admin and a verifier accreditation process, with role changes logged on-chain.
-8. **Public testnet deployment:** deploy to Polygon Amoy and upload real project documents to IPFS (for example via a pinning service).
+8. **Public pilot:** the platform already deploys to Polygon Amoy (Section 4.4). The next step is to upload real project documents to IPFS (for example via a pinning service) and run a pilot with real project data.
 
 ---
 
