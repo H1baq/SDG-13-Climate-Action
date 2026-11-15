@@ -41,7 +41,7 @@ module.exports = {
     // Polygon Amoy public testnet. Put your keys in .env (see .env.example); never commit it.
     // Account order matters: [0] = deployer/admin/developer, [1] = verifier (optional but needed for seeding).
     amoy: {
-      url: process.env.AMOY_RPC_URL || "https://rpc-amoy.polygon.technology",
+      url: process.env.AMOY_RPC_URL || "https://polygon-amoy-bor-rpc.publicnode.com",
       chainId: 80002,
       accounts: [process.env.DEPLOYER_PRIVATE_KEY, process.env.VERIFIER_PRIVATE_KEY].filter(Boolean),
     },

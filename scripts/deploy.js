@@ -23,7 +23,7 @@ const NETWORKS = {
   },
   amoy: {
     chainName: "Polygon Amoy Testnet",
-    rpcUrl: "https://rpc-amoy.polygon.technology",
+    rpcUrl: "https://polygon-amoy-bor-rpc.publicnode.com",
     currency: "POL",
     explorer: "https://amoy.polygonscan.com",
   },
