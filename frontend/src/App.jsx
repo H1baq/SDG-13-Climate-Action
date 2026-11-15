@@ -1,8 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BrowserProvider, Contract, JsonRpcProvider, formatEther, parseEther } from "ethers";
-import contractInfo from "./contract.json";
 
-const LOCAL_RPC = "http://127.0.0.1:8545";
+// Each deployment (written by scripts/deploy.js) lives in ./deployments/<network>.json.
+// `npm run dev` uses localhost; production builds use the network in VITE_NETWORK (see .env.production).
+const DEPLOYMENTS = import.meta.glob("./deployments/*.json", { eager: true, import: "default" });
+const NETWORK = import.meta.env.VITE_NETWORK || "localhost";
+const contractInfo = DEPLOYMENTS[`./deployments/${NETWORK}.json`];
+const IS_LOCAL = NETWORK === "localhost";
+const RPC_URL = contractInfo?.rpcUrl || "http://127.0.0.1:8545";
+const CURRENCY = contractInfo?.currency || "ETH";
+const LOG_CHUNK = 9_000; // many public RPCs cap eth_getLogs at 10,000 blocks per call
 const TABS = ["Marketplace", "My Credits", "Developer", "Verifier", "Retirement Registry"];
 
 const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
@@ -37,7 +44,23 @@ function errorMessage(err) {
 }
 
 export default function App() {
-  const readProvider = useMemo(() => new JsonRpcProvider(LOCAL_RPC), []);
+  if (!contractInfo) {
+    return (
+      <div className="app">
+        <h1>🌍 KaboniChain</h1>
+        <div className="status err">
+          No contract deployment found for network “{NETWORK}”. Deploy it with{" "}
+          <code>{IS_LOCAL ? "npm run deploy:local" : `npm run deploy:${NETWORK}`}</code>, then commit{" "}
+          <code>frontend/src/deployments/{NETWORK}.json</code>.
+        </div>
+      </div>
+    );
+  }
+  return <Dapp />;
+}
+
+function Dapp() {
+  const readProvider = useMemo(() => new JsonRpcProvider(RPC_URL, contractInfo.chainId, { staticNetwork: true }), []);
   const readContract = useMemo(
     () => new Contract(contractInfo.address, contractInfo.abi, readProvider),
     [readProvider]
@@ -55,17 +78,36 @@ export default function App() {
   const [status, setStatus] = useState(null); // { type: "ok" | "err" | "busy", text }
   const [certificate, setCertificate] = useState(null);
 
+  // Running total of community payments, scanned incrementally from the deployment block
+  // in chunks so it also works on public RPCs that limit log queries.
+  const salesScan = useRef({ next: contractInfo.deployBlock ?? 0, total: 0n, busy: null });
+  const scanCommunityPayments = useCallback(async () => {
+    const s = salesScan.current;
+    if (s.busy) return s.busy;
+    s.busy = (async () => {
+      const latest = await readProvider.getBlockNumber();
+      while (s.next <= latest) {
+        const to = Math.min(s.next + LOG_CHUNK - 1, latest);
+        const sold = await readContract.queryFilter(readContract.filters.CreditsSold(), s.next, to);
+        s.total += sold.reduce((sum, e) => sum + e.args.communityPaid, 0n);
+        s.next = to + 1;
+      }
+      return s.total;
+    })().finally(() => { s.busy = null; });
+    return s.busy;
+  }, [readContract, readProvider]);
+
   // ---------------------------------------------------------------- data
   const refresh = useCallback(async () => {
     try {
-      const [ps, rs, sold] = await Promise.all([
+      const [ps, rs, paid] = await Promise.all([
         readContract.getAllProjects(),
         readContract.getAllRetirements(),
-        readContract.queryFilter(readContract.filters.CreditsSold()),
+        scanCommunityPayments(),
       ]);
       setProjects(ps);
       setRetirements(rs.map((r, i) => ({ ...r.toObject(), id: i })));
-      setCommunityEarned(sold.reduce((sum, e) => sum + e.args.communityPaid, 0n));
+      setCommunityEarned(paid);
 
       if (account) {
         const b = {};
@@ -75,10 +117,12 @@ export default function App() {
     } catch (err) {
       setStatus({
         type: "err",
-        text: "Can't reach the local blockchain. Start it with `npx hardhat node` and run `npm run deploy:local`.",
+        text: IS_LOCAL
+          ? "Can't reach the local blockchain. Start it with `npx hardhat node` and run `npm run deploy:local`."
+          : `Can't reach ${contractInfo.chainName}. Check your connection and refresh the page.`,
       });
     }
-  }, [readContract, account]);
+  }, [readContract, account, scanCommunityPayments]);
 
   useEffect(() => {
     refresh();
@@ -99,9 +143,10 @@ export default function App() {
           method: "wallet_addEthereumChain",
           params: [{
             chainId: chainHex,
-            chainName: "Hardhat Local",
-            rpcUrls: [LOCAL_RPC],
-            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+            chainName: contractInfo.chainName || "Hardhat Local",
+            rpcUrls: [RPC_URL],
+            nativeCurrency: { name: CURRENCY, symbol: CURRENCY, decimals: 18 },
+            ...(contractInfo.explorer ? { blockExplorerUrls: [contractInfo.explorer] } : {}),
           }],
         });
       }
@@ -190,7 +235,7 @@ export default function App() {
         <Stat label="Credits issued" value={`${totals.issued} t`} />
         <Stat label="For sale" value={`${totals.listed} t`} />
         <Stat label="Retired (burned)" value={`${totals.retired} t`} />
-        <Stat label="Paid to communities" value={`${formatEther(communityEarned)} ETH`} />
+        <Stat label="Paid to communities" value={`${formatEther(communityEarned)} ${CURRENCY}`} />
       </section>
 
       {status && <div className={`status ${status.type}`}>{status.text}</div>}
@@ -222,7 +267,15 @@ export default function App() {
       )}
 
       <footer>
-        Contract {short(contractInfo.address)} · 1 token = 1 tonne CO₂e · Sample data for demonstration
+        Contract{" "}
+        {contractInfo.explorer ? (
+          <a href={`${contractInfo.explorer}/address/${contractInfo.address}`} target="_blank" rel="noreferrer">
+            {short(contractInfo.address)}
+          </a>
+        ) : (
+          short(contractInfo.address)
+        )}{" "}
+        on {contractInfo.chainName || NETWORK} · 1 token = 1 tonne CO₂e · Sample data for demonstration
       </footer>
     </div>
   );
@@ -269,7 +322,7 @@ function Marketplace({ projects, send }) {
           <div className="card" key={p.id}>
             <ProjectHeader p={p} />
             <dl>
-              <dt>Price</dt><dd>{formatEther(p.pricePerTonne)} ETH / tonne</dd>
+              <dt>Price</dt><dd>{formatEther(p.pricePerTonne)} {CURRENCY} / tonne</dd>
               <dt>Available</dt><dd>{p.listedAmount.toString()} t</dd>
               <dt>Community share</dt><dd>{pct(p.communityShareBps)} of every sale</dd>
               <dt>Retired so far</dt><dd>{p.totalRetired.toString()} t</dd>
@@ -287,12 +340,12 @@ function Marketplace({ projects, send }) {
                   send(`Buying ${n} t`, (c) => c.buyCredits(p.id, n, { value: cost }))
                 }
               >
-                Buy {n ? `(${formatEther(cost)} ETH)` : ""}
+                Buy {n ? `(${formatEther(cost)} ${CURRENCY})` : ""}
               </button>
             </div>
             {n > 0n && (
               <p className="muted small">
-                → {formatEther((cost * p.communityShareBps) / 10000n)} ETH goes straight to the community wallet
+                → {formatEther((cost * p.communityShareBps) / 10000n)} {CURRENCY} goes straight to the community wallet
               </p>
             )}
           </div>
@@ -351,7 +404,7 @@ function Developer({ projects, account, isDev, send }) {
   const empty = { name: "", location: "", projectType: "", metadataURI: "", community: "", share: "40" };
   const [f, setF] = useState(empty);
   const [list, setList] = useState({});
-  if (!isDev) return <p className="muted">Connect with a <b>Developer</b> account (Hardhat account #1) to use this page.</p>;
+  if (!isDev) return <p className="muted">Connect with an account that has the <b>Developer</b> role{IS_LOCAL ? " (Hardhat account #1)" : ""} to use this page.</p>;
 
   const mine = projects.filter((p) => p.developer.toLowerCase() === account.toLowerCase());
   const field = (k, label, ph) => (
@@ -399,7 +452,7 @@ function Developer({ projects, account, isDev, send }) {
                 <div className="row">
                   <input type="number" placeholder="Tonnes" value={l.amount || ""}
                     onChange={(e) => setList({ ...list, [p.id]: { ...l, amount: e.target.value } })} />
-                  <input type="number" step="0.001" placeholder="ETH / tonne" value={l.price || ""}
+                  <input type="number" step="0.001" placeholder={`${CURRENCY} / tonne`} value={l.price || ""}
                     onChange={(e) => setList({ ...list, [p.id]: { ...l, price: e.target.value } })} />
                   <button
                     disabled={!l.amount || !l.price}
@@ -421,7 +474,7 @@ function Developer({ projects, account, isDev, send }) {
 
 function Verifier({ projects, isVerifier, send }) {
   const [tonnes, setTonnes] = useState({});
-  if (!isVerifier) return <p className="muted">Connect with a <b>Verifier</b> account (Hardhat account #2) to use this page.</p>;
+  if (!isVerifier) return <p className="muted">Connect with an account that has the <b>Verifier</b> role{IS_LOCAL ? " (Hardhat account #2)" : ""} to use this page.</p>;
   const pending = projects.filter((p) => !p.verified);
   if (!pending.length) return <p className="muted">No projects are waiting for verification.</p>;
 

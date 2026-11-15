@@ -89,6 +89,7 @@ th { color: var(--muted); font-weight: 600; }
 .certificate .row { justify-content: center; margin-top: 16px; }
 
 footer { margin-top: 40px; text-align: center; color: var(--muted); font-size: 0.85rem; }
+footer a { color: var(--green); }
 
 @media print {
   body * { visibility: hidden; }
