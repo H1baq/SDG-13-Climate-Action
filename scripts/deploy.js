@@ -35,9 +35,53 @@ const SAMPLE_PROJECTS = [
   ["Laikipia Rangeland Restoration (sample)", "Laikipia County, Kenya", "Rangeland Soil Carbon", "metadata/project-3.json", 5000],
 ];
 
-async function send(label, txPromise) {
-  const tx = await txPromise;
-  await tx.wait();
+// Public networks: wait for a few blocks, and never hang forever on a transaction nobody includes.
+const CONFIRMATIONS = LOCAL ? 1 : 3;
+const TX_TIMEOUT_MS = 180_000;
+const MIN_TIP = ethers.parseUnits("30", "gwei"); // Polygon validators ignore smaller tips
+const nonces = new Map(); // address -> next nonce
+const stuckUntil = new Map(); // address -> nonces below this replace a stuck transaction
+
+// Hardhat's automatic maxFeePerGas leaves no room for Polygon's large tip, so transactions get
+// stuck. Set the fees explicitly, and reuse the nonce of any stuck transaction to replace it.
+async function txOverrides(signer) {
+  if (LOCAL) return {};
+  const { address } = signer;
+  if (!nonces.has(address)) {
+    const latest = await ethers.provider.getTransactionCount(address, "latest");
+    const pending = await ethers.provider.getTransactionCount(address, "pending");
+    nonces.set(address, latest);
+    stuckUntil.set(address, pending);
+    if (pending > latest) console.log(`  (Replacing ${pending - latest} stuck transaction(s) from ${address})`);
+  }
+  const nonce = nonces.get(address);
+  const block = await ethers.provider.getBlock("latest");
+  const suggested = BigInt(await ethers.provider.send("eth_maxPriorityFeePerGas", []).catch(() => 0));
+  let tip = suggested > MIN_TIP ? suggested : MIN_TIP;
+  if (nonce < stuckUntil.get(address)) tip = (tip * 125n) / 100n; // a replacement must pay at least 10% more
+  return { nonce, maxPriorityFeePerGas: tip, maxFeePerGas: block.baseFeePerGas * 2n + tip };
+}
+
+// Public RPCs are load-balanced, so a server may briefly lag behind the last block. Only used for
+// reads and gas estimates, which are safe to repeat.
+async function retryRead(fn) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (LOCAL || attempt === 5) throw err;
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+  }
+}
+
+async function send(label, signer, contract, fn, ...args) {
+  const method = contract.connect(signer)[fn];
+  const overrides = await retryRead(() => txOverrides(signer));
+  if (!LOCAL) overrides.gasLimit = ((await retryRead(() => method.estimateGas(...args))) * 12n) / 10n;
+  const tx = await method(...args, overrides);
+  if (!LOCAL) nonces.set(signer.address, overrides.nonce + 1);
+  await tx.wait(CONFIRMATIONS, TX_TIMEOUT_MS);
   console.log(`  ✔ ${label}`);
 }
 
@@ -77,33 +121,35 @@ async function main() {
   }
 
   const CarbonCredit = await ethers.getContractFactory("CarbonCredit");
-  const cc = await CarbonCredit.deploy(MIN_COMMUNITY_SHARE_BPS);
-  await cc.waitForDeployment();
-  const deployBlock = (await cc.deploymentTransaction().wait()).blockNumber;
+  const overrides = await retryRead(() => txOverrides(admin));
+  const cc = await CarbonCredit.deploy(MIN_COMMUNITY_SHARE_BPS, overrides);
+  if (!LOCAL) nonces.set(admin.address, overrides.nonce + 1);
+  console.log(`Deploy transaction sent: ${cc.deploymentTransaction().hash}`);
+  const deployBlock = (await cc.deploymentTransaction().wait(CONFIRMATIONS, TX_TIMEOUT_MS)).blockNumber;
   const address = await cc.getAddress();
   console.log(`CarbonCredit deployed at ${address}`);
 
   // --- Roles ---------------------------------------------------------------
-  await send(`DEVELOPER_ROLE → ${developer.address}`, cc.grantRole(await cc.DEVELOPER_ROLE(), developer.address));
+  const developerRole = await retryRead(() => cc.DEVELOPER_ROLE());
+  await send(`DEVELOPER_ROLE → ${developer.address}`, admin, cc, "grantRole", developerRole, developer.address);
   if (verifier) {
-    await send(`VERIFIER_ROLE → ${verifier.address}`, cc.grantRole(await cc.VERIFIER_ROLE(), verifier.address));
+    const verifierRole = await retryRead(() => cc.VERIFIER_ROLE());
+    await send(`VERIFIER_ROLE → ${verifier.address}`, admin, cc, "grantRole", verifierRole, verifier.address);
   }
 
   // --- Seed sample projects ---------------------------------------------------
   // Testnet prices are tiny so that faucet POL is enough to try buying.
   const price = LOCAL ? ethers.parseEther("0.01") : ethers.parseEther("0.0001"); // per tonne
-  const dev = cc.connect(developer);
   for (const [i, [name, location, type, uri, share]] of SAMPLE_PROJECTS.entries()) {
-    await send(`registered ${name}`, dev.registerProject(name, location, type, uri, communities[i], share));
+    await send(`registered ${name}`, developer, cc, "registerProject", name, location, type, uri, communities[i], share);
   }
 
   if (verifier) {
     // Projects 1 and 2 are verified and listed; project 3 is left pending for the demo.
-    const ver = cc.connect(verifier);
-    await send("verified project 1 (5000 t)", ver.verifyAndIssue(1, 5000));
-    await send("verified project 2 (2000 t)", ver.verifyAndIssue(2, 2000));
-    await send("listed 3000 t of project 1", dev.listForSale(1, 3000, price));
-    await send("listed 1500 t of project 2", dev.listForSale(2, 1500, price * 2n));
+    await send("verified project 1 (5000 t)", verifier, cc, "verifyAndIssue", 1, 5000);
+    await send("verified project 2 (2000 t)", verifier, cc, "verifyAndIssue", 2, 2000);
+    await send("listed 3000 t of project 1", developer, cc, "listForSale", 1, 3000, price);
+    await send("listed 1500 t of project 2", developer, cc, "listForSale", 2, 1500, price * 2n);
     console.log("Seeded 3 sample projects (2 verified & listed, 1 awaiting verification).");
   } else {
     console.log("No VERIFIER_PRIVATE_KEY set: projects registered but not verified or listed.");
